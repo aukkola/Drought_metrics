@@ -88,7 +88,7 @@ for v in range(len(severity)):
                             str(end_yr) + '/' + experiment[k] + "/" + var_name + "/")
 
 
-        #Reference data for calculating threshold
+        #Loop through models
         for m in range(len(models)):
 
             ### Find CMIP5 files ###
