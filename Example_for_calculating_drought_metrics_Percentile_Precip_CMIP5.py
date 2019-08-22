@@ -289,7 +289,7 @@ for k in range(len(experiment)):
     
         
         #Create output file name
-        out_file = (out_path + '/' + models[m] + '_drought_metrics_perc_' + str(perc)
+        out_file = (out_path + '/' + models[m] + '_drought_metrics_perc_' + str(perc))
         
         # #If using PET limit
         # if pet_lim:

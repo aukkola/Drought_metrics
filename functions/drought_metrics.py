@@ -42,6 +42,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     if mean_pet_lim == True:
         from mean_pet_ratio import mean_pet_ratio
 
+    #import pdb
 
    # from remove_short_events import *
 
@@ -63,14 +64,15 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
         mod_vec = np.append(np.zeros(scale-1) * np.nan , 
                         mod_rollsum[0:(len(mod_rollsum) - scale+1)])
     
+        #pdb.set_trace()
     
         #Similarly for obs_ref if using
         if ~all(np.isnan(obs_vec)):
             
             obs_rollsum = np.convolve(obs_vec, np.ones((scale,)))[(scale-1):] 
             
-            obs_vec = np.append(np.zeros(scale-1) * np.nan , 
-                            obs_rollsum[0:(len(obs_rollsum) - scale+1)])
+            obs_vec = np.append(np.zeros(scale-1) * np.nan, 
+                                obs_rollsum[0:(len(obs_rollsum) - scale+1)])
     
     
     
@@ -93,7 +95,8 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     #Calculate monthly standardised AET/PET ratio if using this option
     #Returns a list of ratio and threshold
     if mean_pet_lim == True:
-        mean_ratio = mean_pet_ratio(aet_vec=vec, pet_vec=pet_vec, perc=perc, subset=subset, monthly=monthly)
+        mean_ratio = mean_pet_ratio(aet_vec=vec, pet_vec=pet_vec, perc=perc, 
+                                    subset=subset, monthly=monthly)
     
     #Calculate monthly AET/PET ratio
     elif pet_lim == True:
