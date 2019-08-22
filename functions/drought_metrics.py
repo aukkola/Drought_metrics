@@ -61,7 +61,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
         #Create of vector with first values as NA, and take the rest as rolling
         #sum (ignoring the last values as they are not correct)
         mod_vec = np.append(np.zeros(scale-1) * np.nan , 
-                        mod_rollsum[0:(len(mod_rollmean) - scale+1)])
+                        mod_rollsum[0:(len(mod_rollsum) - scale+1)])
     
     
         #Similarly for obs_ref if using
@@ -70,7 +70,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
             obs_rollsum = np.convolve(obs_vec, np.ones((scale,)))[(scale-1):] 
             
             obs_vec = np.append(np.zeros(scale-1) * np.nan , 
-                            obs_rollsum[0:(len(obs_rollmean) - scale+1)])
+                            obs_rollsum[0:(len(obs_rollsum) - scale+1)])
     
     
     
@@ -111,42 +111,51 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     # It is used later to determine drought magnitude and intensity
     #Takes scale into account when determining average of each month
 
-    #Initialise
-    sum_vec = np.zeros(12) * np.nan
+    if monthly:
+        
+        #Initialise
+        sum_vec = np.zeros(12) * np.nan
 
-    #loop months
-    for k in range(12):
+        #loop months
+        for k in range(12):
 
-        #Create sequence of vector indices for each month
-        ind = list(range(k, len(mod_vec), 12))
-
-
-        #Scale larger than 1, calculate mean from current and previous months
-        if scale > 1:
-
-            #Remove first element(s) of ind when month no. less than scale (to avoid negative indices)
-            if k < (scale-1):
-                ind = ind[1:len(ind)]
+            #Create sequence of vector indices for each month
+            ind = list(range(k, len(mod_vec), 12))
 
 
-            #Calculate average from current month and counting back scale no. of months
-            temp_sum  = np.zeros(len(ind))
+            #Scale larger than 1, calculate mean from current and previous months
+            if scale > 1:
 
-            for i in range(len(ind)):
-                temp_sum[i]  = np.sum(mod_vec[(ind[i] - scale + 1):(ind[i]+1)])
-
-            #Take average
-            sum_vec[k]  = np.mean(temp_sum)
+                #Remove first element(s) of ind when month no. less than scale (to avoid negative indices)
+                if k < (scale-1):
+                    ind = ind[1:len(ind)]
 
 
-        #Scale equals 1
-        else:
-            #Calculate mean using values for each month
-            sum_vec[k] = np.mean(mod_vec[ind])
+                #Calculate average from current month and counting back scale no. of months
+                temp_sum  = np.zeros(len(ind))
+
+                for i in range(len(ind)):
+                    temp_sum[i]  = np.sum(mod_vec[(ind[i] - scale + 1):(ind[i]+1)])
+
+                #Take average
+                sum_vec[k]  = np.nanmean(temp_sum)
 
 
-    #Repeat threshold vector for calculating additional metrics
-    sum_vec = np.tile(sum_vec, len(mod_vec)/12)    #repeat number of months
+            #Scale equals 1
+            else:
+                #Calculate mean using values for each month
+                sum_vec[k] = np.nanmean(mod_vec[ind])
+
+
+        #Repeat threshold vector for calculating additional metrics
+        sum_vec = np.tile(sum_vec, int(len(mod_vec)/12))    #repeat number of months
+
+
+    #Not monthly
+    else:
+        
+        #Calculate mean of whole time series and repeat for the same length
+        sum_vec = np.tile(np.nanmean(mod_vec), len(mod_vec))
 
 
 
@@ -207,8 +216,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     dry_days = np.sort(dry_days)
         
   
-  
-
+ 
 
     #####################
     ### Find duration ###    
@@ -228,7 +236,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
         duration = end - start +1
         
     else:
-        duration = 0
+        duration = np.nan
 
 
     ### Timing ###
@@ -259,9 +267,9 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     
     #Repeat threshold vector for calculating additional metrics
     if monthly == True:
-        threshold = np.tile(threshold, len(mod_vec)/12)   #repeat number of yrs
+        threshold = np.tile(threshold, int(len(mod_vec)/12))   #repeat number of yrs
     elif monthly == False:
-        threshold = np.repeat(threshold, len(mod_vec))    #repeat number of months
+        threshold = np.repeat(threshold, int(len(mod_vec)))    #repeat number of months
 
 
 
@@ -289,16 +297,13 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
                  else:
                      magnitude[k] = threshold[start[k]] - mod_vec[start[k]]
                 
-        #If no dry days       
-        else:  
-            magnitude = 0.
-                
+            
    
 
         #Calculate mean magnitude of drought events of certain length (as defined in "count")
         if 'count_magnitude' in add_metrics:
             
-            count_magnitude = np.zeros(len(count))
+            count_magnitude = np.zeros(len(count)) * np.nan
 
             #If found dry days
             if len(dry_days) > 0:
@@ -322,33 +327,56 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     rel_intensity = np.nan
     count_intensity = np.nan
 
-    if 'intensity' in add_metrics:
-        
-        
+    #Absolute (mm) and relative intensity (% departure from mean conditions)
+    if 'intensity' or 'rel_intensity' in add_metrics:
+                
         #If found dry days
         if len(dry_days) > 0:
 
             #initialise
             intensity = np.zeros(len(start))        
-        
-            #loop through drought periods
+            rel_intensity = np.zeros(len(start))
+
+            #Loop through drought periods
             for k in range(len(start)):
-                
+
+
                 #More than one consec day
                 if end[k] - start[k] > 0:
-                    
-                    intensity[k] = max( threshold[start[k]:(end[k]+1)] - mod_vec[start[k]:(end[k]+1)] )  #maximum difference
-                
+
+                    #Initialise temporary intensity vector to match drought length
+                    temp_int     = np.zeros(end[k]-start[k]+1)
+
+                    #Create a vector of indices for current drought event
+                    ind = np.arange(start[k], end[k]+1) #Need to add 1 to end day because of python indexing!!
+
+                    #Calculate magnitude for each month, taking into account scale
+                    for d in range(len(ind)):
+
+                        #Absolute intensity
+                        temp_int[d]     = sum_vec[ind[d]] - mod_vec[ind[d]] 
+
+
+                    #Average monthly magnitudes to get event intensity
+                    intensity[k] = np.mean(temp_int)
+
+                    #Relative intensity abs( (m - mean) / mean * 100)), where m is drought month value
+                    #(using simplified version of this from Ned)
+                    rel_intensity[k] = abs(( intensity[k] / np.mean(sum_vec[ind]) -1)) * 100
+
+
+
                 #One consec day only
                 else:
-                    
-                    intensity[k] = threshold[start[k]] - mod_vec[start[k]]
-                    
-        #If no dry days
-        else:
-                intensity = 0.
-                
-        
+
+                    #Absolute intensity
+                    intensity[k] = sum_vec[start[k]] - mod_vec[start[k]]
+
+                    #Relative intensity abs( (m - mean) / mean * 100)), where m is drought month value
+                    rel_intensity[k] = abs( (mod_vec[start[k]] - sum_vec[start[k]]) /
+                                       sum_vec[start[k]] * 100 ) #Need to add 1 to end day because of python indexing!!
+            
+           
         
         #Calculate mean magnitude of drought events of certain length (as defined in "count")
         if 'count_intensity' in add_metrics:
@@ -371,6 +399,32 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     ### List outputs ###
 
 
+    #If returning metrics as time series, modify metrics here
+    #(do not apply this to "count variables", perhaps should be changed later)
+    if return_all_tsteps:
+        
+        if len(dry_days) > 0:
+            
+            #I'm sure there is a smarter way to do this?
+            
+            temp_dur     = np.zeros(len(mod_vec)) * np.nan
+            temp_mag     = np.zeros(len(mod_vec)) * np.nan
+            temp_int     = np.zeros(len(mod_vec)) * np.nan
+            temp_rel_int = np.zeros(len(mod_vec)) * np.nan
+
+            temp_dur[start]     = duration
+            temp_mag[start]     = magnitude
+            temp_int[start]     = intensity
+            temp_rel_int[start] = rel_intensity
+
+            duration=temp_dur
+            magnitude=temp_mag
+            intensity=temp_int
+            rel_intensity=temp_rel_int
+    
+
+
+    #Compile outputs
     outs = {'duration': duration, 'timing': timing, 'magnitude': magnitude, 'intensity': intensity, 
             'rel_intensity': rel_intensity, 'threshold': threshold, 'count_duration': count_duration, 
             'count_magnitude': count_magnitude, 'count_intensity': count_intensity}
