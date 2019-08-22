@@ -290,8 +290,9 @@ def drought_metrics_SPI(mod_vec, spi_vec, lib_path, severity, scale,
                      intensity[k] = np.mean(temp_int)
 
                      #Relative intensity abs( (m - mean) / mean * 100)), where m is drought month value
-                     rel_intensity[k] = abs( (sum(mod_vec[(ind[d]-scale+1) : (ind[d]+1)]) - sum_vec[ind[d]]) /
-                                        sum_vec[ind[d]] * 100 ) #Need to add 1 to end day because of python indexing!!
+                     rel_intensity[k] = abs(( intensity[k] / np.mean(sum_vec[ind]) -1)) * 100
+                     # abs( (sum(mod_vec[(ind[d]-scale+1) : (ind[d]+1)]) - sum_vec[ind[d]]) /
+                     #                    sum_vec[ind[d]] * 100 ) #Need to add 1 to end day because of python indexing!!
 
 
 

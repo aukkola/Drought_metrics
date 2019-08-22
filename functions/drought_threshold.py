@@ -20,7 +20,7 @@ def drought_threshold(vec, perc=15, subset=float('nan'), monthly=False):
     #Calculates threshold based on all data
     if monthly == False:
 
-        threshold = np.percentile(vec, perc) 
+        threshold = np.nanpercentile(vec, perc) 
         
     #Calculates a separate threshold for each month (assumes input is full 12 month periods)
     elif monthly == True:
@@ -29,7 +29,7 @@ def drought_threshold(vec, perc=15, subset=float('nan'), monthly=False):
     
         for k in range(len(threshold)):
             ind = list(range(k, len(vec), 12))  #Create sequence of indices for each month
-            threshold[k] = np.percentile(vec[ind], perc)    #Calculate threshold using values for each month
+            threshold[k] = np.nanpercentile(vec[ind], perc)    #Calculate threshold using values for each month
     
     
     return threshold;

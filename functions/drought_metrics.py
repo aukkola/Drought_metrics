@@ -18,13 +18,14 @@ Created on Fri May  6 14:54:23 2016
 # pet_lim: additional constraint for identifying drought days (AET/PET ratio below pet_ratio)
 
 
-def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15,                           
+def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,                           
                     subset=float('nan'),
-                    monthly=False, 
+                    monthly=False, return_all_tsteps=False,
                     pet_lim=False,  pet_ratio=0.2, pet_vec=float('nan'),    #use AET/PET ratio?
                     temp_lim=False, temp_val=10, temp_vec=float('nan'),     #use temperature limit? temp above a threshold
                     mean_pet_lim=False,                                     #use standardised (AET + mean(PET)) / (PET + mean(PET)) ratio?
-                    add_metrics=(['timing', 'magnitude', 'intensity', 'threshold', 'count_duration', 'count_magnitude', 'count_intensity']),
+                    add_metrics=(['timing', 'magnitude', 'intensity', 'threshold', 
+                    'count_duration', 'count_magnitude', 'count_intensity']),
                     count=[ 1,  2,  3,  4,  5,  6]):  
     
     
@@ -44,6 +45,33 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15,
 
    # from remove_short_events import *
 
+
+    #################################
+    ### Calculate running mean ts ###
+    #################################
+    
+    #There is an option to turn the time series to a running sum series
+    #using "scale". This is similar to the scale used for SPI
+    
+    if scale > 1:
+        
+        #Calculate rolling sum time series (the last values of this are bogus)
+        mod_rollsum = np.convolve(mod_vec, np.ones((scale,)))[(scale-1):] 
+        
+        #Create of vector with first values as NA, and take the rest as rolling
+        #sum (ignoring the last values as they are not correct)
+        mod_vec = np.append(np.zeros(scale-1) * np.nan , 
+                        mod_rollsum[0:(len(mod_rollmean) - scale+1)])
+    
+    
+        #Similarly for obs_ref if using
+        if all(np.isnan) == False:
+            
+            obs_rollsum = np.convolve(obs_vec, np.ones((scale,)))[(scale-1):] 
+            
+            obs_vec = np.append(np.zeros(scale-1) * np.nan , 
+                            obs_rollsum[0:(len(obs_rollmean) - scale+1)])
+    
     
     
     ###########################
@@ -53,10 +81,9 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15,
     #If obs_vec not supplied, set to use mod_vec for threshold calculation instead
     
     if all(np.isnan(obs_vec)):
-    #if np.isnan(obs_vec):
         vec = mod_vec
     else:
-        vec=obs_vec
+        vec = obs_vec
     
     
     #Calculate threshold value
@@ -77,6 +104,52 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15,
      
      
     
+    ##############################
+    ### Calculate monthly mean ###
+    ##############################
+
+    # It is used later to determine drought magnitude and intensity
+    #Takes scale into account when determining average of each month
+
+    #Initialise
+    sum_vec = np.zeros(12) * np.nan
+
+    #loop months
+    for k in range(12):
+
+        #Create sequence of vector indices for each month
+        ind = list(range(k, len(mod_vec), 12))
+
+
+        #Scale larger than 1, calculate mean from current and previous months
+        if scale > 1:
+
+            #Remove first element(s) of ind when month no. less than scale (to avoid negative indices)
+            if k < (scale-1):
+                ind = ind[1:len(ind)]
+
+
+            #Calculate average from current month and counting back scale no. of months
+            temp_sum  = np.zeros(len(ind))
+
+            for i in range(len(ind)):
+                temp_sum[i]  = np.sum(mod_vec[(ind[i] - scale + 1):(ind[i]+1)])
+
+            #Take average
+            sum_vec[k]  = np.mean(temp_sum)
+
+
+        #Scale equals 1
+        else:
+            #Calculate mean using values for each month
+            sum_vec[k] = np.mean(mod_vec[ind])
+
+
+    #Repeat threshold vector for calculating additional metrics
+    sum_vec = np.tile(sum_vec, len(mod_vec)/12)    #repeat number of months
+
+
+
     #########################
     ### Find drought days ###    
     #########################
@@ -246,6 +319,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15,
     ######################
 
     intensity = np.nan
+    rel_intensity = np.nan
     count_intensity = np.nan
 
     if 'intensity' in add_metrics:
@@ -297,8 +371,9 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15,
     ### List outputs ###
 
 
-    outs = {'duration': duration, 'timing': timing, 'magnitude': magnitude, 'intensity': intensity, 'threshold': threshold,
-            'count_duration': count_duration, 'count_magnitude': count_magnitude, 'count_intensity': count_intensity}
+    outs = {'duration': duration, 'timing': timing, 'magnitude': magnitude, 'intensity': intensity, 
+            'rel_intensity': rel_intensity, 'threshold': threshold, 'count_duration': count_duration, 
+            'count_magnitude': count_magnitude, 'count_intensity': count_intensity}
 
 
     return outs;

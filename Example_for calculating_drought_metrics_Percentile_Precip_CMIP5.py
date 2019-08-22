@@ -47,10 +47,13 @@ experiment=['amip', 'historical']  #CMIP5 experiments
 start_yr= 1989
 end_yr  = 2005
 
-#This bit is redundant
-# year indices to extract correct data years
-#yr_ind = np.array(range((start_yr-start_yr)*12, (end_yr-start_yr)*12 + 12))  #Need to add one to end year, silly python 
 
+#Select if want indices returned as a time series or shorter vector
+#If True, will return drought indices as time series (with NA for non-drought months)
+#useful for calculating trends etc. in metrics
+#If False, collapses indices into a short vector 
+#reduces data size and useful if looking at the mean of drought indices
+return_all_tsteps=True
 
 ############################
 #### Set drought limits ####
@@ -70,9 +73,11 @@ monthly=True
 # pet_lim=False       #Use PET to determine ET droughts? NOT implemented in this example
 # temp_lim=False      #Use a temperature threshold to determine droughts? NOT implemented in this example
 # 
-# #Use observations for calculating threshold?
-# obs_ref = False
-# obs_var = 'ET_mean'   #ET_mean, ET_min, ET_max
+#Use observations or another model file for calculating threshold?
+#Uses this file to calculate baseline for drought metrics if true
+#(currently set to use historical simulation, see "obs_file" below)
+obs_ref = False
+obs_var = var_name   #ET_mean, ET_min, ET_max
 
 
 
@@ -93,16 +98,15 @@ for k in range(len(experiment)):
     for m in range(len(models)):
 
         
-        # #If using obs as reference (set to ET data, fix later if needed...)
-        # if obs_ref:
-        #     obs_file = (root_path + '/LandFlux/Regridded/' + experiment[k] + "/" + 
-        #                 models[m] + '/LandFluxEVAL.89-05.monthly.diagnostic_mm_month_' + 
-        #                 obs_var + "_" + models[m] + "_regrid.nc")
+        #If using obs as reference (set to ET data, fix later if needed...)
+        if obs_ref:
+            obs_file = glob.glob(root_path + '/Processed_data_' + start_yr + '_' + end_yr +
+                              "/historical/" + var_name + "/" + models[m] + "/*setgrid.nc")
         
     
         ### Find CMIP5 files ###
         files = glob.glob(root_path + '/Processed_data_' + start_yr + '_' + end_yr + '/'  + 
-                          experiment[k] + "/" + var_name + "/" + models[m] + "/*regrid.nc")
+                          experiment[k] + "/" + var_name + "/" + models[m] + "/*setgrid.nc")
         
         
         ### Load data ###
@@ -129,14 +133,23 @@ for k in range(len(experiment)):
         data[mask==True] = miss_val
     
         #Read reference data used to calculate threshold
-        # if obs_ref:
-        #     obs_fh = Dataset(obs_file, mode='r')
-        #     control_ref = obs_fh.variables[obs_var][:].data
-        # 
-        #     print "Using OBS ref"
-        # 
-        # else:
-        control_ref = data        
+        if obs_ref:
+            obs_fh = Dataset(obs_file, mode='r')
+            control_ref = obs_fh.variables[obs_var][:].data
+        
+            #Get lon and lat (name varies by CMIP5 model)
+            try:
+                lat_ctrl = fh.variables['latitude'][:]
+                lon_ctrl = fh.variables['longitude'][:]
+            except:
+                lat_ctrl = fh.variables['northing'][:]
+                lon_ctrl = fh.variables['easting'][:]
+             
+
+            print "Using an OBS/model ref to calculate baseline"
+        
+        else:
+            control_ref = data        
             
             
     
@@ -169,21 +182,39 @@ for k in range(len(experiment)):
         
     
         #Flip latitude as reads map upside down
-        #Should implement this if using obs, pet or temp limits... Fix later
-        #data = data[:,::-1,:]
+        #Should implement this if using pet or temp limits... Fix later
     
+        #Not sure why but python reads some files upside down
+        #Flip latitude if reads map upside down so model matches SPI data
+        if obs_ref:
+            #If model data upside down
+            if (lat[0] < 0 and lat_ctrl[0] > 0):
+                print "Flipping MODEL data, experiment: ", experiment[k], " model:", models[m]
+                data = data[:,::-1,:]
+                #replace lat with lat_ctrl (otherwise written to file the wrong way round)
+                lat=lat_ctrl
+            #If REF data upside down
+            elif (lat[0] > 0 and lat_ctrl[0] < 0):
+                print "Flipping OBS ref data, experiment: ", experiment[k], " model:", models[m]
+                control_ref = control_ref[:,::-1,:]
+
+
     
         ### Initialise output arrays ###
         
         #Expect to have approx. percentile amount of months as drought (e.g. 10% of data
         #when percentile is set to 10. To be on the safe side, determine array sizes
-        #as double that size)
-        save_len = int(len(data)*(perc/100)*2)
+        #as double that size) if not writing out as a full time series
         
-        duration     = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan
-        magnitude    = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan
-        intensity    = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan
-        timing       = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan    
+        if return_all_tsteps:
+            save_len = len(data)
+        else:
+            save_len = int(len(data)*(perc/100)*2)
+        
+        duration      = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan
+        rel_intensity = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan
+        intensity     = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan
+        timing        = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan    
         
         if monthly:
             threshold    = np.zeros((12, len(lat), len(lon))) + miss_val # * np.nan
@@ -208,13 +239,14 @@ for k in range(len(experiment)):
                  
                      #Calculate metrics
                      metric = drought_metrics(mod_vec=data[:,i,j], lib_path=lib_path, perc=perc, 
-                                              monthly=monthly, #, obs_vec=control_ref[:,i,j])
-                                              add_metrics=(['timing', 'magnitude', 'intensity', 'threshold'])
+                                              monthly=monthly, obs_vec=control_ref[:,i,j]),
+                                              return_all_tsteps=return_all_tsteps,
+                                              add_metrics=(['timing', 'rel_intensity', 'intensity', 'threshold'])
                 
                      ### Write metrics to variables ###
                      duration[range(np.size(metric['duration'])),i,j]   = metric['duration']  #total drought duration (months)
     
-                     magnitude[range(np.size(metric['magnitude'])),i,j] = metric['magnitude'] #average magnitude
+                     rel_intensity[range(np.size(metric['rel_intensity'])),i,j] = metric['rel_intensity'] #average magnitude
                     
                      intensity[range(np.size(metric['intensity'])),i,j] = metric['intensity'] #average intensity
             
@@ -291,7 +323,7 @@ for k in range(len(experiment)):
     
         #Create data variables
         data_dur  = ncfile.createVariable('duration', 'i4',('time','lat','lon'), fill_value=miss_val)
-        data_mag  = ncfile.createVariable('magnitude','f8',('time','lat','lon'), fill_value=miss_val)
+        data_mag  = ncfile.createVariable('rel_intensity','f8',('time','lat','lon'), fill_value=miss_val)
         data_int  = ncfile.createVariable('intensity','f8',('time','lat','lon'), fill_value=miss_val)
         data_tim  = ncfile.createVariable('timing',   'i4',('time','lat','lon'), fill_value=miss_val)
         
@@ -307,8 +339,8 @@ for k in range(len(experiment)):
         latitude.units  = 'degrees_north'
         
         data_dur.long_name= 'drought event duration (no. months)'
-        data_mag.long_name= 'drought event magnitude'
-        data_int.long_name= 'drought event intensity'
+        data_mag.long_name= 'drought event relative intensity (%)'
+        data_int.long_name= 'drought event intensity (mm)'
         data_tim.long_name= 'drought event timing (month index)'
         data_thr.long_name= 'drought threshold (mm)'
        
@@ -325,7 +357,7 @@ for k in range(len(experiment)):
      
         #Write data to data variables
         data_dur[:,:,:] = duration    
-        data_mag[:,:,:] = magnitude
+        data_mag[:,:,:] = rel_intensity
         data_int[:,:,:] = intensity
         data_tim[:,:,:] = timing
         
