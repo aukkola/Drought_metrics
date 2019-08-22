@@ -62,6 +62,10 @@ return_all_tsteps=True
 #Set percentile for drought threshold
 perc=10
 
+#Set scale if want to use running means to determine drought (like SPI scale)
+#Use 1 if don't want to use this
+scale=3
+
 #Use threshold determined separately for each month?
 #If set to false, determines one threshold from all data.
 #Set to false if using annual data
@@ -240,7 +244,7 @@ for k in range(len(experiment)):
                      #Calculate metrics
                      metric = drought_metrics(mod_vec=data[:,i,j], lib_path=lib_path, perc=perc, 
                                               monthly=monthly, obs_vec=control_ref[:,i,j]),
-                                              return_all_tsteps=return_all_tsteps,
+                                              return_all_tsteps=return_all_tsteps, scale=scale,
                                               add_metrics=(['timing', 'rel_intensity', 'intensity', 'threshold'])
                 
                      ### Write metrics to variables ###
