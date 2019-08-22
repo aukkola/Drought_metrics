@@ -64,7 +64,6 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
         mod_vec = np.append(np.zeros(scale-1) * np.nan , 
                         mod_rollsum[0:(len(mod_rollsum) - scale+1)])
     
-        #pdb.set_trace()
     
         #Similarly for obs_ref if using
         if ~all(np.isnan(obs_vec)):
@@ -168,7 +167,6 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     
     #Month/day indices where mod_vec below threshold    
     
-
     
     #No monthly
     if monthly == False:
@@ -192,7 +190,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
         for k in range(len(threshold)):   
                             
             #Create sequence of indices for each month
-            ind = list(range(k, len(vec), 12))                       
+            ind = list(range(k, len(mod_vec), 12))                       
             
             #No PET lim
             if pet_lim == False:        
@@ -213,7 +211,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
             
             #Find month indices corresponding to dry indices (have to convert ind to array to extract elements)
             dry_days.extend(np.array(ind)[dry_ind])                   
-            
+    
             
     #sort ascending
     dry_days = np.sort(dry_days)
