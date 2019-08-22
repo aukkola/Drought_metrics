@@ -65,7 +65,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     
     
         #Similarly for obs_ref if using
-        if all(np.isnan) == False:
+        if ~all(np.isnan(obs_vec)):
             
             obs_rollsum = np.convolve(obs_vec, np.ones((scale,)))[(scale-1):] 
             
