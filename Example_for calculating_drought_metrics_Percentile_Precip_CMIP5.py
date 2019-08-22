@@ -94,8 +94,8 @@ for k in range(len(experiment)):
 
 
     #List all model names
-    models = os.listdir(root_path + '/Processed_data_' + start_yr + '_' + end_yr + '/' + 
-                        experiment[k] + "/" + var_name + "/")
+    models = os.listdir(root_path + '/Processed_data_' + str(start_yr) + '_' + 
+                        str(end_yr) + '/' + experiment[k] + "/" + var_name + "/")
 
 
     #Reference data for calculating threshold
@@ -104,13 +104,15 @@ for k in range(len(experiment)):
         
         #If using obs as reference (set to ET data, fix later if needed...)
         if obs_ref:
-            obs_file = glob.glob(root_path + '/Processed_data_' + start_yr + '_' + end_yr +
-                              "/historical/" + var_name + "/" + models[m] + "/*setgrid.nc")
+            obs_file = glob.glob(root_path + '/Processed_data_' + str(start_yr) + 
+                                 '_' + str(end_yr) + "/historical/" + var_name + 
+                                 "/" + models[m] + "/*setgrid.nc")
         
     
         ### Find CMIP5 files ###
-        files = glob.glob(root_path + '/Processed_data_' + start_yr + '_' + end_yr + '/'  + 
-                          experiment[k] + "/" + var_name + "/" + models[m] + "/*setgrid.nc")
+        files = glob.glob(root_path + '/Processed_data_' + srt(start_yr) + '_' + 
+                          str(end_yr) + '/' + experiment[k] + "/" + var_name + 
+                          "/" + models[m] + "/*setgrid.nc")
         
         
         ### Load data ###
@@ -243,9 +245,9 @@ for k in range(len(experiment)):
                  
                      #Calculate metrics
                      metric = drought_metrics(mod_vec=data[:,i,j], lib_path=lib_path, perc=perc, 
-                                              monthly=monthly, obs_vec=control_ref[:,i,j]),
+                                              monthly=monthly, obs_vec=control_ref[:,i,j],
                                               return_all_tsteps=return_all_tsteps, scale=scale,
-                                              add_metrics=(['timing', 'rel_intensity', 'intensity', 'threshold'])
+                                              add_metrics=(['timing', 'rel_intensity', 'intensity', 'threshold']))
                 
                      ### Write metrics to variables ###
                      duration[range(np.size(metric['duration'])),i,j]   = metric['duration']  #total drought duration (months)
