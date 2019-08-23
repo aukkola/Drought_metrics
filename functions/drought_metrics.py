@@ -124,30 +124,8 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
             #Create sequence of vector indices for each month
             ind = list(range(k, len(mod_vec), 12))
 
-
-            #Scale larger than 1, calculate mean from current and previous months
-            if scale > 1:
-
-                #Remove first element(s) of ind when month no. less than scale (to avoid negative indices)
-                if k < (scale-1):
-                    ind = ind[1:len(ind)]
-
-
-                #Calculate average from current month and counting back scale no. of months
-                temp_sum  = np.zeros(len(ind))
-
-                for i in range(len(ind)):
-                    temp_sum[i]  = np.sum(mod_vec[(ind[i] - scale + 1):(ind[i]+1)])
-
-                #Take average
-                sum_vec[k]  = np.nanmean(temp_sum)
-
-
-            #Scale equals 1
-            else:
-                #Calculate mean using values for each month
-                sum_vec[k] = np.nanmean(mod_vec[ind])
-
+            #Calculate mean using values for each month
+            sum_vec[k] = np.nanmean(mod_vec[ind])
 
         #Repeat threshold vector for calculating additional metrics
         sum_vec = np.tile(sum_vec, int(len(mod_vec)/12))    #repeat number of months
@@ -363,7 +341,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
 
                     #Relative intensity abs( (m - mean) / mean * 100)), where m is drought month value
                     #(using simplified version of this from Ned)
-                    rel_intensity[k] = abs(( intensity[k] / np.mean(sum_vec[ind]) -1)) * 100
+                    rel_intensity[k] = abs(( np.mean(mod_vec[ind]) / np.mean(sum_vec[ind]) -1)) * 100
 
 
 
