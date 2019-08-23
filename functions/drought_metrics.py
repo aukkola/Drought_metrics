@@ -330,8 +330,8 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
                     ind = np.arange(start[k], end[k]+1) #Need to add 1 to end day because of python indexing!!
 
                     #Calculate magnitude for each month, taking into account scale
-                    for d in range(len(ind)):
-
+                    for d in range(len(ind)):                    
+                    
                         #Absolute intensity
                         temp_int[d]     = sum_vec[ind[d]] - mod_vec[ind[d]] 
 
