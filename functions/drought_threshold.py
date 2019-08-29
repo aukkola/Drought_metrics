@@ -14,7 +14,7 @@ def drought_threshold(vec, perc=15, subset=float('nan'), monthly=False):
     import numpy as np
 
     #Subset vector if wanted (allows threshold to be calculated for a subset of total time period)
-    if ~np.isnan(subset):
+    if any(~np.isnan(subset)):
         vec=vec[subset]
             
     #Calculates threshold based on all data
