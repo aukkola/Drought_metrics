@@ -333,7 +333,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
                     for d in range(len(ind)):                    
                     
                         #Absolute intensity
-                        temp_int[d]     = sum_vec[ind[d]] - mod_vec[ind[d]] 
+                        temp_int[d]     = threshold[ind[d]] - mod_vec[ind[d]] 
 
 
                     #Average monthly magnitudes to get event intensity
@@ -341,7 +341,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
 
                     #Relative intensity abs( (m - mean) / mean * 100)), where m is drought month value
                     #(using simplified version of this from Ned)
-                    rel_intensity[k] = abs(( np.mean(mod_vec[ind]) / np.mean(sum_vec[ind]) -1)) * 100
+                    rel_intensity[k] = abs(( np.mean(mod_vec[ind]) / np.mean(threshold[ind]) -1)) * 100
 
 
 
@@ -349,11 +349,11 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
                 else:
 
                     #Absolute intensity
-                    intensity[k] = sum_vec[start[k]] - mod_vec[start[k]]
+                    intensity[k] = threshold[start[k]] - mod_vec[start[k]]
 
                     #Relative intensity abs( (m - mean) / mean * 100)), where m is drought month value
-                    rel_intensity[k] = abs( (mod_vec[start[k]] - sum_vec[start[k]]) /
-                                       sum_vec[start[k]] * 100 ) #Need to add 1 to end day because of python indexing!!
+                    rel_intensity[k] = abs( ([start[k]] - threshold[start[k]]) /
+                                       threshold[start[k]] * 100 ) #Need to add 1 to end day because of python indexing!!
             
            
         
