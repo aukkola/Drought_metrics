@@ -89,7 +89,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     
     #Calculate threshold value
     threshold = drought_threshold(vec, perc, subset, monthly)
-
+    
     
     #Calculate monthly standardised AET/PET ratio if using this option
     #Returns a list of ratio and threshold
@@ -352,7 +352,7 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
                     intensity[k] = threshold[start[k]] - mod_vec[start[k]]
 
                     #Relative intensity abs( (m - mean) / mean * 100)), where m is drought month value
-                    rel_intensity[k] = abs( ([start[k]] - threshold[start[k]]) /
+                    rel_intensity[k] = abs( (mod_vec[start[k]] - threshold[start[k]]) /
                                        threshold[start[k]] * 100 ) #Need to add 1 to end day because of python indexing!!
             
            
@@ -406,7 +406,8 @@ def drought_metrics(mod_vec, lib_path, obs_vec=[float('nan')], perc=15, scale=3,
     #Compile outputs
     outs = {'duration': duration, 'timing': timing, 'magnitude': magnitude, 'intensity': intensity, 
             'rel_intensity': rel_intensity, 'threshold': threshold, 'count_duration': count_duration, 
-            'count_magnitude': count_magnitude, 'count_intensity': count_intensity}
+            'count_magnitude': count_magnitude, 'count_intensity': count_intensity,
+            'tseries': mod_vec}
 
 
     return outs;
