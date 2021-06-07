@@ -30,7 +30,8 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
                                   perc_onset=10, perc_termination=50, scale=3,                           
                                   subset=float('nan'),
                                   monthly=False, return_all_tsteps=False,
-                                  add_metrics=(['timing', 'magnitude', 'intensity', 'threshold', 
+                                  add_metrics=(['timing', 'magnitude', 'intensity', 
+                                  'threshold_onset', 'threshold_termination',
                                   'count_duration', 'count_magnitude', 'count_intensity']),
                                   count=[ 1,  2,  3,  4,  5,  6]):  
     
@@ -141,7 +142,7 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
     #Not monthly
     if monthly == False:
 
-        dry_days = np.where(mod_vec < threshold)[0]  #need to add zero so return a vector
+        dry_days = np.where(mod_vec < threshold_onset)[0]  #need to add zero so return a vector
             
         
     #Monthly
@@ -150,13 +151,13 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
         dry_days = []
     
         #loop months
-        for k in range(len(threshold)):   
+        for k in range(len(threshold_onset)):   
                             
             #Create sequence of indices for each month
             ind = list(range(k, len(mod_vec), 12))                       
             
             #Extract relevant month from mod_vec and find correct threshold
-            dry_ind = np.where(mod_vec[ind] < threshold[k])[0]  
+            dry_ind = np.where(mod_vec[ind] < threshold_onset[k])[0]  
             
             #Find month indices corresponding to dry indices (have to convert ind to array to extract elements)
             dry_days.extend(np.array(ind)[dry_ind])                   
@@ -226,11 +227,11 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
       
       
     
-    #Repeat threshold vector for calculating additional metrics
-    if monthly == True:
-        threshold = np.tile(threshold, int(len(mod_vec)/12))   #repeat number of yrs
-    elif monthly == False:
-        threshold = np.repeat(threshold, int(len(mod_vec)))    #repeat number of months
+    # #Repeat threshold vector for calculating additional metrics
+    # if monthly == True:
+    #     threshold_onset = np.tile(threshold, int(len(mod_vec)/12))   #repeat number of yrs
+    # elif monthly == False:
+    #     threshold = np.repeat(threshold, int(len(mod_vec)))    #repeat number of months
 
 
 
@@ -253,10 +254,10 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
                  
                  #More than one consec day
                  if end[k] - start[k] > 0:
-                     magnitude[k] = sum( threshold[start[k]:(end[k]+1)] - mod_vec[start[k]:(end[k]+1)] )  #Need to add 1 to end day because of python indexing!!
+                     magnitude[k] = sum( sum_vec[start[k]:(end[k]+1)] - mod_vec[start[k]:(end[k]+1)] )  #Need to add 1 to end day because of python indexing!!
                  #One consec day only
                  else:
-                     magnitude[k] = threshold[start[k]] - mod_vec[start[k]]
+                     magnitude[k] = sum_vec[start[k]] - mod_vec[start[k]]
                 
             
    
@@ -323,7 +324,7 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
 
                     #Relative intensity abs( (m - mean) / mean * 100)), where m is drought month value
                     #(using simplified version of this from Ned)
-                    rel_intensity[k] = abs(( np.mean(mod_vec[ind]) / np.mean(threshold[ind]) -1)) * 100
+                    rel_intensity[k] = abs(( np.mean(mod_vec[ind]) / np.mean(sum_vec[ind]) -1)) * 100
 
 
 
@@ -387,7 +388,9 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
 
     #Compile outputs
     outs = {'duration': duration, 'timing': timing, 'magnitude': magnitude, 'intensity': intensity, 
-            'rel_intensity': rel_intensity, 'threshold': threshold, 'count_duration': count_duration, 
+            'rel_intensity': rel_intensity, 'threshold_onset': threshold_onset, 
+            'threshold_termination':threshold_termination,
+            'count_duration': count_duration, 
             'count_magnitude': count_magnitude, 'count_intensity': count_intensity,
             'tseries': mod_vec}
 

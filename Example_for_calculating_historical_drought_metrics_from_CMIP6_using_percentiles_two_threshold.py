@@ -23,7 +23,7 @@ lib_path  = root_path + '/scripts/Drought_metrics/functions' # '/drought_metric_
 
 
 sys.path.append(os.path.abspath(lib_path))
-from drought_metrics import *
+from drought_metrics_two_threshold import *
 
    
    
@@ -240,8 +240,8 @@ for v in range(len(var_name)):
                             var_path[v] ) # + '/Obs_' + str(obs_ref) )
 
                 #Add percentile
-                out_path = (out_path + '/Perc_' + str(perc) + '/Baseline_' + 
-                            str(baseline[0]) + "_" + str(baseline[1]) +
+                out_path = (out_path + '/Perc_' + str(perc_onset) + "_" + str(perc_termination) +  
+                            '/Baseline_' + str(baseline[0]) + "_" + str(baseline[1]) +
                             "/Scale_" + str(scale) + "/" + models[m] + "/")
                             
                 
@@ -339,10 +339,14 @@ for v in range(len(var_name)):
          
                              tseries[range(np.size(metric['tseries'])),i,j]       = metric['tseries']    #drought timing (month index)
 
+
                              if monthly:
-                                 threshold[:,i,j] = metric['threshold'][0:12]    #drought timing (month index)
+                                 threshold_onset[:,i,j] = metric['threshold_onset'][0:12]    #drought timing (month index)
+                                 threshold_termination[:,i,j] = metric['threshold_termination'][0:12]    #drought timing (month index)
+
                              else:
-                                 threshold[i,j]   = metric['threshold']
+                                 threshold_onset[i,j]   = metric['threshold_onset']
+                                 threshold_termination[i,j]   = metric['threshold_termination']
             
             
                 ##############################
@@ -382,9 +386,16 @@ for v in range(len(var_name)):
 
                 #Create data variable for threshold
                 if monthly:
-                    data_thr = ncfile.createVariable('threshold', 'f8',('month','lat','lon'), fill_value=miss_val)
+                    data_thr_ons = ncfile.createVariable('threshold_onset', 'f8',
+                    ('month','lat','lon'), fill_value=miss_val)
+                    data_thr_end = ncfile.createVariable('threshold_termination', 'f8',
+                    ('month','lat','lon'), fill_value=miss_val)
+
                 else:
-                    data_thr = ncfile.createVariable('threshold', 'f8',('lat','lon'), fill_value=miss_val)
+                    data_thr_ons = ncfile.createVariable('threshold_onset', 'f8',
+                    ('lat','lon'), fill_value=miss_val)
+                    data_thr_end = ncfile.createVariable('threshold_termination', 'f8',
+                    ('lat','lon'), fill_value=miss_val)
             
             
                 #Set variable attributes
@@ -399,7 +410,8 @@ for v in range(len(var_name)):
                 data_mag.long_name = 'drought event relative intensity (%)'
                 data_int.long_name = 'drought event intensity (mm)'
                 data_tim.long_name = 'drought event timing (month index)'
-                data_thr.long_name = 'drought threshold (mm)'
+                data_thr_ons.long_name = 'drought threshold for onset (mm)'
+                data_thr_end.long_name = 'drought threshold for termination (mm)'
                 data_ts.long_name  = 'original time series'
 
                 if monthly:
@@ -426,9 +438,12 @@ for v in range(len(var_name)):
                 data_ts[:,:,:]  = tseries
 
                 if monthly:    
-                    data_thr[:,:,:] = threshold
+                    data_thr_ons[:,:,:] = threshold_onset
+                    data_thr_end[:,:,:] = threshold_termination
+
                 else:
-                    data_thr[:,:] = threshold
+                    data_thr_ons[:,:] = threshold_onset
+                    data_thr_end[:,:] = threshold_termination
                 
                 
                 # Close the file
