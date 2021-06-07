@@ -389,7 +389,7 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
     #Compile outputs
     outs = {'duration': duration, 'timing': timing, 'magnitude': magnitude, 'intensity': intensity, 
             'rel_intensity': rel_intensity, 'threshold_onset': threshold_onset, 
-            'threshold_termination':threshold_termination,
+            'threshold_termination': threshold_termination,
             'count_duration': count_duration, 
             'count_magnitude': count_magnitude, 'count_intensity': count_intensity,
             'tseries': mod_vec}
