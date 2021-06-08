@@ -302,9 +302,12 @@ for v in range(len(var_name)):
                 tseries       = np.zeros((save_len, len(lat), len(lon))) + miss_val # * np.nan    
                 
                 if monthly:
-                    threshold    = np.zeros((12, len(lat), len(lon))) + miss_val # * np.nan
+                    threshold_onset       = np.zeros((12, len(lat), len(lon))) + miss_val # * np.nan
+                    threshold_termination = np.zeros((12, len(lat), len(lon))) + miss_val # * np.nan
+
                 else:
-                    threshold    = np.zeros((len(lat), len(lon))) + miss_val # * np.nan
+                    threshold_onset       = np.zeros((len(lat), len(lon))) + miss_val # * np.nan
+                    threshold_termination = np.zeros((len(lat), len(lon))) + miss_val # * np.nan
             
             
                 #########################
@@ -318,7 +321,9 @@ for v in range(len(var_name)):
                     for j in range(len(lon)):
                     
                          #Calculate metrics if cell not missing
-                         if any(~mask[:,i,j]):  
+                         #and cell is not all equal values (e.g. all zeros)
+                         if (any(~mask[:,i,j]) and 
+                         len(np.unique(data[:,i,j][~np.isnan(data[:,i,j])])) > 1):  
                          
                              #Calculate metrics
                              metric = drought_metrics_two_threshold(mod_vec=data[:,i,j], lib_path=lib_path, 
