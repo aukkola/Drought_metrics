@@ -165,7 +165,7 @@ def drought_metrics_two_threshold(mod_vec, lib_path, obs_vec=[float('nan')],
             
     #sort ascending
     dry_days = np.sort(dry_days)
-        
+   
   
     #Then loop through dry days to find drought ending days
     #(i.e. the first instance after drought onset when mod_vec goes above 
